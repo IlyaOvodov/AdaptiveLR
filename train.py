@@ -4,6 +4,7 @@ import torchvision.transforms as transforms
 from ovotools import AttrDict
 import local_config
 import cifar_data
+import binary_optymizer
 
 params = AttrDict(
     data_root = local_config.data_root,
@@ -16,17 +17,17 @@ params = AttrDict(
         num_classes= len(cifar_data.cifar10_classes)
     ),
     #model_load_from = 'NN_results/segmentation/linknet_128x128_cc60ab/models/clr.003.t7',
-    optim='torch.optim.SGD',
+    optim='binary_optymizer.SGD_binary',
     optim_params=AttrDict(
-        lr=0.1,
+        lr=2e-5,
         momentum=0.9,
         weight_decay = 5e-4,
         # nesterov = False,
     ),
     lr_finder = AttrDict(
-        iters_num=400,
-        log_lr_start=-4,
-        log_lr_end=-0,
+        iters_num=200,
+        log_lr_start=-5.5,
+        log_lr_end=-4,
     ),
     ls_cheduler = 'torch.optim.lr_scheduler.MultiStepLR',
     clr=AttrDict(
@@ -45,7 +46,7 @@ params = AttrDict(
     ),
     MultiStepLR_params=AttrDict(
         milestones = [150, 250],
-        gamma = 0.1
+        gamma = 0.5
     )
 )
 
