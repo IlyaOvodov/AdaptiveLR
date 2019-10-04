@@ -1,55 +1,3 @@
-import torch
-import torchvision
-import torchvision.transforms as transforms
-from ovotools import AttrDict
-import local_config
-import cifar_data
-import binary_optymizer
-
-params = AttrDict(
-    data_root = local_config.data_root,
-    model_name='NN_results/base',
-    data = AttrDict(
-        batch_size = 128,
-    ),
-    model='torchvision.models.resnet18',
-    model_params=AttrDict(
-        num_classes= len(cifar_data.cifar10_classes)
-    ),
-    #model_load_from = 'NN_results/segmentation/linknet_128x128_cc60ab/models/clr.003.t7',
-    optim='binary_optymizer.SGD_binary',
-    optim_params=AttrDict(
-        lr=2e-5,
-        momentum=0.9,
-        weight_decay = 5e-4,
-        # nesterov = False,
-    ),
-    lr_finder = AttrDict(
-        iters_num=200,
-        log_lr_start=-5.5,
-        log_lr_end=-4,
-    ),
-    ls_cheduler = 'torch.optim.lr_scheduler.MultiStepLR',
-    clr=AttrDict(
-        warmup_epochs=1,
-        min_lr=2e-4,
-        max_lr=3e-1,
-        period_epochs=20,
-        scale_max_lr=0.95,
-        scale_min_lr=0.95,
-    ),
-    ReduceLROnPlateau_params=AttrDict(
-        mode='min',
-        factor=0.1,
-        patience=10,
-        threshold=0.01
-    ),
-    MultiStepLR_params=AttrDict(
-        milestones = [150, 250],
-        gamma = 0.5
-    )
-)
-
 max_epochs = 350
 tensorboard_port = 6006
 device = 'cuda:0'
@@ -57,22 +5,29 @@ findLR = False
 can_overwrite = False
 max_data_len = None
 
-if findLR:
-    params.model_name += '_findLR'
-params.save(can_overwrite = can_overwrite)
-
 from collections import OrderedDict
 import torch
 import torch.nn.functional as F
+import torchvision
+import torchvision.transforms as transforms
 import ignite
 from ignite.engine import Events
 import ovotools.ignite_tools
 import ovotools.pytorch_tools
+import cifar_data
+import binary_optymizer
 import model
 
-net = model.create_model(params).to('cuda')
+from params import params
+
+params.model_params['num_classes'] = len(cifar_data.cifar10_classes)
+if findLR:
+    params.model_name += '_findLR'
+params.save(can_overwrite = can_overwrite)
+
 data_loader = cifar_data.cifar10_dataloader(params, train = True)
 val_data_loader = cifar_data.cifar10_dataloader(params, train = False)
+net = model.create_model(params)
 optimizer = eval(params.optim)(net.parameters(), **params.optim_params)
 loss = torch.nn.CrossEntropyLoss()
 
@@ -89,7 +44,7 @@ evaluator = ignite.engine.create_supervised_evaluator(net, metrics=trainer_metri
 if findLR:
     best_model_buffer = None
 else:
-    best_model_buffer = ovotools.ignite_tools.BestModelBuffer(net, 'train:accuracy', minimize = False, params = params)
+    best_model_buffer = ovotools.ignite_tools.BestModelBuffer(net, 'val:loss', minimize = True, params = params)
 log_training_results = ovotools.ignite_tools.LogTrainingResults(evaluator = evaluator,
                                                                 loaders_dict = {'val':val_data_loader},
                                                                 best_model_buffer = best_model_buffer,
