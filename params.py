@@ -3,7 +3,7 @@ import local_config
 
 params = AttrDict(
     data_root = local_config.data_root,
-    model_name='NN_results/bin',
+    model_name='NN_results/repr3',
     data = AttrDict(
         dataset = 'mnist',
         batch_size = 128,
@@ -14,9 +14,9 @@ params = AttrDict(
         #load_from = 'NN_results/segmentation/linknet_128x128_cc60ab/models/clr.003.t7',
     ),
     optim = AttrDict(
-        type = 'binary_optymizer.SGD_binary', #'torch.optim.SGD' 'binary_optymizer.SGD_binary'
+        type = 'torch.optim.SGD', #'torch.optim.SGD' 'binary_optymizer.SGD_binary'
         params = AttrDict(
-            lr=3e-5,
+            lr=0.01,
             momentum=.5,
             #weight_decay = 1e-3,
             # nesterov = False,
@@ -28,7 +28,7 @@ params = AttrDict(
         log_lr_end=-1,
     ),
     lr_cheduler = AttrDict(
-        type = 'torch.optim.lr_scheduler.ReduceLROnPlateau',
+        #type = 'torch.optim.lr_scheduler.ReduceLROnPlateau',
         params=AttrDict(
             mode='min',
             factor=0.5,

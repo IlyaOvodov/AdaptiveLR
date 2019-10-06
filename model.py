@@ -7,17 +7,34 @@ import local_config
 import binary_optymizer
 
 def create_object(params, key, required,  *args, **kwargs):
-    p = params.get(key, '')
+    '''
+    create object of type params.<key>.type using *args, **kwargs, parameters params.<key>.params
+    params.<key>.params is optional
+    :param params: dict containig params.<key>.type and params.<key>.params
+    :param key: string, key in params dict
+    :param required: if params has no <key> or params.<key> has no ['type'] or any ot them is empty,
+           and required==True, raise error. If required==False, return None.
+    :param args:
+    :param kwargs:
+    :return: created object
+    '''
+    p = params.get(key)
     if not p:
         if required:
             raise Exception('NO '+ key + ' is set')
         else:
             print('NO '+ key + ' is set')
             return None
+    if not p.get('type'):
+        if required:
+            raise Exception('NO '+ key + '["type"] is set')
+        else:
+            print('NO '+ key + '["type"] is set')
+            return None
     all_args = kwargs.copy()
     all_args.update(dict(p.get('params', dict())))
-    print('creating: ', p.type, all_args)
-    obj = eval(p.type)(*args, **all_args)
+    print('creating: ', p['type'], all_args)
+    obj = eval(p['type'])(*args, **all_args)
     return obj
 
 def create_model(params, train = True):
@@ -30,27 +47,6 @@ def create_optim(net_parameters, params):
 
 def create_lr_scheduler(optimizer, params):
     return create_object(params, 'lr_cheduler', False, optimizer)
-
-'''
-def create_model(params, train = True):
-    print('creating: ', params.model.type, dict(params.model.get('params', dict())))
-    net = eval(params.model.type)(**params.model.get('params', dict()))
-    net.train(train)
-    return net
-
-def create_optim(net, params):
-    print('creating: ', params.optim.type, dict(params.optim.get('params', dict())))
-    optimizer = eval(params.optim.type)(net.parameters(), **params.optim.get('params', dict()))
-    return optimizer
-
-def create_lr_scheduler(optimizer, params):
-    if not params.get('lr_cheduler', ''):
-        print('NO lr_cheduler set')
-        return None
-    print('creating: ', params.lr_cheduler.type, dict(params.lr_cheduler.get('params', dict())))
-    lrsched = eval(params.lr_cheduler.type)(optimizer, **params.lr_cheduler.get('params', dict()))
-    return lrsched
-'''
 
 class MnistNet(nn.Module):
     def __init__(self, **kwargs):
