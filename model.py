@@ -5,48 +5,11 @@ import torch.nn.functional as F
 import torchvision
 import local_config
 import binary_optymizer
+import llr
 
-def create_object(params, key, required,  *args, **kwargs):
-    '''
-    create object of type params.<key>.type using *args, **kwargs, parameters params.<key>.params
-    params.<key>.params is optional
-    :param params: dict containig params.<key>.type and params.<key>.params
-    :param key: string, key in params dict
-    :param required: if params has no <key> or params.<key> has no ['type'] or any ot them is empty,
-           and required==True, raise error. If required==False, return None.
-    :param args:
-    :param kwargs:
-    :return: created object
-    '''
-    p = params.get(key)
-    if not p:
-        if required:
-            raise Exception('NO '+ key + ' is set')
-        else:
-            print('NO '+ key + ' is set')
-            return None
-    if not p.get('type'):
-        if required:
-            raise Exception('NO '+ key + '["type"] is set')
-        else:
-            print('NO '+ key + '["type"] is set')
-            return None
-    all_args = kwargs.copy()
-    all_args.update(dict(p.get('params', dict())))
-    print('creating: ', p['type'], all_args)
-    obj = eval(p['type'])(*args, **all_args)
-    return obj
 
-def create_model(params, train = True):
-    net = create_object(params, 'model', True)
-    net.train(train)
-    return net
-
-def create_optim(net_parameters, params):
-    return create_object(params, 'optim', True, net_parameters)
-
-def create_lr_scheduler(optimizer, params):
-    return create_object(params, 'lr_cheduler', False, optimizer)
+def eval_finc(s: str):
+    return eval(s)
 
 class MnistNet(nn.Module):
     def __init__(self, **kwargs):
