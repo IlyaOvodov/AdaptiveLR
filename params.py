@@ -35,6 +35,7 @@ params = AttrDict(
             # nesterov = False,
             lrlr = 0.01,
             update_mode = 'loggrad', # const: lr */= (1+lrlr) loggrad
+            use = 'd_p', # 'grad', 'd_p'
         ),
     ),
     lr_finder = AttrDict(

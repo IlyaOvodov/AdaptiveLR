@@ -7,10 +7,11 @@ import torch
 
 
 class LLR_SGD(torch.optim.SGD):
-    def __init__(self, *args, lrlr=0, update_mode = None, **kwargs):
+    def __init__(self, *args, lrlr=0, update_mode = 'const', use='grad', **kwargs):
         super(LLR_SGD, self).__init__(*args, **kwargs)
         self.lrlr = lrlr
         self.update_mode = update_mode
+        self.use = use
 
     def step(self, closure=None):
         """Performs a single optimization step.
@@ -52,7 +53,7 @@ class LLR_SGD(torch.optim.SGD):
                         d_p = buf
                 p.data.add_(-group['lr'], d_p)
                 if self.lrlr:
-                    grad = p.grad.data
+                    grad = p.grad.data if self.use == 'grad' else d_p
                     if 'lr_grad' in param_state:
                         mul = grad*param_state['lr_grad']
                         sum_lr_grad += mul.sum()
@@ -61,6 +62,7 @@ class LLR_SGD(torch.optim.SGD):
                     param_state['lr_grad'] = torch.clone(grad).detach()
             if sum_lr_grad:
                 if self.update_mode == 'loggrad':
+                    #print(group['lr'], sum_lr_grad)
                     group['lr'] = torch.exp( math.log(group['lr']) + self.lrlr*sum_lr_grad).item()
                 elif self.update_mode == 'const':
                     if sum_lr_grad > 0:
