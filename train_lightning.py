@@ -17,6 +17,7 @@ class TestModule(pl.LightningModule):
         self.net = context.net
         self.ctx.train_dataloader = None
         self.ctx.val_dataloader = None
+        self.samples_processed = 0
 
     def forward(self, x):
         y = self.net(x)
@@ -42,15 +43,18 @@ class TestModule(pl.LightningModule):
         x, y = batch
         logits = self(x)
         loss = self.ctx.loss(logits, y)
-        self.log('lr', self.ctx.optimizer.param_groups[0]['lr'], on_step=False, on_epoch=True, prog_bar=True)
-        self.log('train:loss', loss, prog_bar=True)
-        self.log("train:epoch", self.trainer.current_epoch, prog_bar=True)
-        self.log("step", self.trainer.fit_loop.epoch_loop._batches_that_stepped*self.ctx.params.data.params.batch_size, prog_bar=True)
-        self.log("step", self.trainer.fit_loop.epoch_loop._batches_that_stepped*self.ctx.params.data.params.batch_size, on_step=False, on_epoch=True, prog_bar=True)
+        self.samples_processed += self.ctx.params.data.params.batch_size
+        self.log('lr',          self.ctx.optimizer.param_groups[0]['lr'],   on_step=True, on_epoch=False, prog_bar=True)
+        self.log('train:loss',  loss,                                       on_step=True, on_epoch=False, prog_bar=True)
+        self.log("train:epoch", float(self.trainer.current_epoch),          on_step=True, on_epoch=False, prog_bar=True)
+        self.log("step",        float(self.samples_processed),              on_step=True, on_epoch=False, prog_bar=True)
 
         # prob = torch.nn.Softmax()(logits)
         # self.log('train_acc', self.train_acc(prob, y), on_step=False, on_epoch=True, prog_bar=True)
         return loss
+
+    # def on_train_epoch_end(self):
+    #     self.log("step", float(self.trainer.fit_loop.epoch_loop._batches_that_stepped*self.ctx.params.data.params.batch_size), prog_bar=True)
 
     def evaluate(self, batch, stage=None):
         x, y = batch
@@ -59,8 +63,9 @@ class TestModule(pl.LightningModule):
         preds = torch.argmax(logits, dim=1)
         acc = accuracy(preds, y, "multiclass", num_classes=10)
         if stage:
-            self.log(f"{stage}:loss", loss, prog_bar=True, logger=True) #, on_step=False, on_epoch=True
-            self.log(f"{stage}:acc", acc, prog_bar=True, logger=True)
+            self.log(f"{stage}:loss", loss,                 on_step=False, on_epoch=True, logger=True, prog_bar=True)
+            self.log(f"{stage}:acc", acc,                   on_step=False, on_epoch=True, logger=True, prog_bar=True)
+        self.log("step", float(self.samples_processed),     on_step=False, on_epoch=True, prog_bar=True)
 
     def validation_step(self, batch, batch_idx):
         self.evaluate(batch, "val")
