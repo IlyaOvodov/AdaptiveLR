@@ -1,9 +1,11 @@
 from ovotools import AttrDict
 import local_config
 
+
 # Parameters of program run, not of algorithm. Not expected to imfluence the result
 settings = AttrDict(
-    max_epochs = 200,
+    debug_mode = False,
+    max_epochs = 100,
     tensorboard_port = 6006,
     device = 'cuda:0',
     findLR = False,
@@ -13,43 +15,44 @@ settings = AttrDict(
 # Parameters of algorithm. Are stored with result
 params = AttrDict(
     data_root = local_config.data_root,
-    model_name='NN_results/llr',
+    model_name='NN_results/2023/{data.dataset}tst/09_{model.type}_bs{data.params.batch_size}_{optimizer.type}_{optimizer.params.lr}',
     data = AttrDict(
         dataset = 'mnist',
-        batch_size = 128,
+        params = AttrDict(
+            batch_size = 100,
+        )
     ),
     model = AttrDict(
-        type = 'MnistNet',
+        type = 'LeNet',
         params = AttrDict(),
         #load_from = 'NN_results/segmentation/linknet_128x128_cc60ab/models/clr.003.t7',
     ),
     loss=AttrDict(
-        type='torch.nn.CrossEntropyLoss',
+        type='torch.nn.NLLLoss',
+        params=AttrDict(),
     ),
     optimizer = AttrDict(
-        type = 'llr.LLR_SGD', #'torch.optim.SGD' 'binary_optymizer.SGD_binary'
+        type = 'torch.optim.SGD', # 'llr.LLR_SGD' 'binary_optymizer.SGD_binary'
         params = AttrDict(
-            lr=0.001,
+            lr=0.01,
             momentum=.5,
             weight_decay = 1e-3,
             # nesterov = False,
-            lrlr = 0.01,
-            update_mode = 'loggrad', # const: lr */= (1+lrlr) loggrad
-            use = 'd_p', # 'grad', 'd_p'
+            # lrlr = 0.01,
+            # update_mode = 'loggrad', # const: lr */= (1+lrlr) loggrad
+            # use = 'd_p', # 'grad', 'd_p'
         ),
     ),
     lr_finder = AttrDict(
         iters_num=200,
-        log_lr_start=-6,
-        log_lr_end=-1,
+        log_lr_start=-2,
+        log_lr_end=-2,
     ),
     lr_scheduler = AttrDict(
-        #type = 'torch.optim.lr_scheduler.ReduceLROnPlateau',
+        type = 'torch.optim.lr_scheduler.StepLR',
         params=AttrDict(
-            mode='min',
-            factor=0.5,
-            patience=10,
-            #threshold=0.01
+            step_size=20,
+            gamma=0.1,
         ),
     ),
 )

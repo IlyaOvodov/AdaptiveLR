@@ -10,7 +10,7 @@ import model
 import params
 
 def train():
-    ctx = ovotools.pytorch.Context(settings=params.settings, params=params.params, eval_func=model.eval_finc)
+    ctx = ovotools.pytorch.Context(settings=params.settings, params=params.params, eval_func=model.eval_func)
 
     ctx.params.model.params['num_classes'] = len(cifar_data.cifar10_classes)
     if ctx.settings.findLR:
@@ -25,11 +25,11 @@ def train():
     ctx.create_loss()
 
     if ctx.params.data.dataset == 'mnist':
-        data_loader = mnist_data.mnist_dataloader(ctx.params, train=True)
-        val_data_loader = mnist_data.mnist_dataloader(ctx.params, train=False)
+        data_loader = mnist_data.mnist_dataloader(train=True, **ctx.params.data.params)
+        val_data_loader = mnist_data.mnist_dataloader(train=False, **ctx.params.data.params)
     elif ctx.params.data.dataset == 'cifar10':
-        data_loader = cifar_data.cifar10_dataloader(ctx.params, train = True)
-        val_data_loader = cifar_data.cifar10_dataloader(ctx.params, train = False)
+        data_loader = cifar_data.cifar10_dataloader(train = True, **ctx.params.data.params)
+        val_data_loader = cifar_data.cifar10_dataloader(train = False, **ctx.params.data.params)
 
     trainer_metrics = OrderedDict({
         'loss': ignite.metrics.Loss(ctx.loss.get_val(), batch_size=lambda y: ctx.params.data.batch_size),

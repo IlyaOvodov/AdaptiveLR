@@ -24,9 +24,9 @@ def cifar10_dataset(train):
                                             transform=transform_train if train else transform_test)
     return dataset
 
-def cifar10_dataloader(params, train):
+def cifar10_dataloader(train, batch_size):
     dataset = cifar10_dataset(train)
-    loader = torch.utils.data.DataLoader(dataset, batch_size=params.data.batch_size, shuffle=train, num_workers=0)
+    loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=train, num_workers=0)
     return loader
 
 
