@@ -15,7 +15,7 @@ settings = AttrDict(
 # Parameters of algorithm. Are stored with result
 params = AttrDict(
     data_root = local_config.data_root,
-    model_name='NN_results/2023/{data.dataset}loop_test/03x_man1_{model.type}_bs{data.params.batch_size}_{optimizer.type}_{optimizer.params.lr}',
+    model_name='NN_results/2023/{data.dataset}loop_test/03_man1_{model.type}_bs{data.params.batch_size}_{optimizer.type}_{optimizer.params.lr}',
     data = AttrDict(
         dataset = 'mnist',
         params = AttrDict(
