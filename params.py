@@ -5,7 +5,7 @@ import local_config
 # Parameters of program run, not of algorithm. Not expected to imfluence the result
 settings = AttrDict(
     debug_mode = False,
-    max_epochs = 5,
+    max_epochs = 10,
     tensorboard_port = 6006,
     device = 'cuda:0',
     findLR = False,
@@ -15,7 +15,7 @@ settings = AttrDict(
 # Parameters of algorithm. Are stored with result
 params = AttrDict(
     data_root = local_config.data_root,
-    model_name='NN_results/2023/{data.dataset}tst/09_STEP_{model.type}_bs{data.params.batch_size}_{optimizer.type}_{optimizer.params.lr}',
+    model_name='NN_results/2023/{data.dataset}loop_test/03x_man1_{model.type}_bs{data.params.batch_size}_{optimizer.type}_{optimizer.params.lr}',
     data = AttrDict(
         dataset = 'mnist',
         params = AttrDict(
@@ -29,7 +29,9 @@ params = AttrDict(
     ),
     loss=AttrDict(
         type='torch.nn.NLLLoss',
-        params=AttrDict(),
+        params=AttrDict(
+            reduction='none',
+        ),
     ),
     optimizer = AttrDict(
         type = 'SGD', # 'torch.optim.SGD' 'llr.LLR_SGD' 'binary_optymizer.SGD_binary'
@@ -51,7 +53,7 @@ params = AttrDict(
     lr_scheduler = AttrDict(
         type = 'torch.optim.lr_scheduler.StepLR',
         params=AttrDict(
-            step_size=20,
+            step_size=5,
             gamma=0.1,
         ),
     ),

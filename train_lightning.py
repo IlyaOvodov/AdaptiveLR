@@ -18,6 +18,9 @@ class TestModule(pl.LightningModule):
         self.ctx.train_dataloader = None
         self.ctx.val_dataloader = None
         self.samples_processed = 0
+        if self.ctx.params.loss.params.get("reduction")=='none':
+            self.automatic_optimization = False
+        # self.automatic_optimization = False  # for testing
 
     def forward(self, x):
         y = self.net(x)
@@ -34,18 +37,24 @@ class TestModule(pl.LightningModule):
             self.ctx.train_dataloader = self.create_dataloader(train=True)
         return self.ctx.train_dataloader
 
-    def val_dataloader(self):
-        if self.ctx.val_dataloader is None:
-            self.ctx.val_dataloader = self.create_dataloader(train=False)
-        return self.ctx.val_dataloader
+    # def val_dataloader(self):
+    #     if self.ctx.val_dataloader is None:
+    #         self.ctx.val_dataloader = self.create_dataloader(train=False)
+    #     return self.ctx.val_dataloader
 
     def training_step(self, batch, batch_idx):
+        if self.automatic_optimization:
+            return self.training_step_auto(batch, batch_idx)
+        else:
+            return self.training_step_manual(batch, batch_idx)
+
+    def training_step_auto(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
         loss = self.ctx.loss(logits, y)
         self.samples_processed += self.ctx.params.data.params.batch_size
         self.log('lr',          self.ctx.optimizer.param_groups[0]['lr'],   on_step=True, on_epoch=False, prog_bar=True)
-        self.log('train:loss',  loss,                                       on_step=True, on_epoch=False, prog_bar=True)
+        self.log('train:loss',  loss.mean(),                                       on_step=True, on_epoch=False, prog_bar=True)
         self.log("train:epoch", float(self.trainer.current_epoch),          on_step=True, on_epoch=False, prog_bar=True)
         self.log("step",        float(self.samples_processed),              on_step=True, on_epoch=False, prog_bar=True)
 
@@ -53,8 +62,34 @@ class TestModule(pl.LightningModule):
         # self.log('train_acc', self.train_acc(prob, y), on_step=False, on_epoch=True, prog_bar=True)
         return loss
 
-    # def on_train_epoch_end(self):
-    #     self.log("step", float(self.trainer.fit_loop.epoch_loop._batches_that_stepped*self.ctx.params.data.params.batch_size), prog_bar=True)
+    def training_step_manual(self, batch, batch_idx):
+        x, y = batch
+        logits = self(x)
+        loss = self.ctx.loss(logits, y)
+
+        opt = self.optimizers()
+        opt.zero_grad()
+        if len(loss.size()) == 0:
+            loss=loss[None]
+        for loss_i in loss:
+            self.manual_backward(loss_i/len(loss), retain_graph=True)
+        opt.step()
+
+        self.samples_processed += self.ctx.params.data.params.batch_size
+        self.log('lr',          self.ctx.optimizer.param_groups[0]['lr'],   on_step=True, on_epoch=False, prog_bar=True)
+        self.log('train:loss',  loss.mean(),                                       on_step=True, on_epoch=False, prog_bar=True)
+        self.log("train:epoch", float(self.trainer.current_epoch),          on_step=True, on_epoch=False, prog_bar=True)
+        self.log("step",        float(self.samples_processed),              on_step=True, on_epoch=False, prog_bar=True)
+
+        # prob = torch.nn.Softmax()(logits)
+        # self.log('train_acc', self.train_acc(prob, y), on_step=False, on_epoch=True, prog_bar=True)
+        return loss
+
+    def on_train_epoch_end(self):
+        if not self.automatic_optimization:
+            scheduler = self.lr_schedulers()
+            scheduler.step()
+        # self.log("step", float(self.trainer.fit_loop.epoch_loop._batches_that_stepped*self.ctx.params.data.params.batch_size), prog_bar=True)
 
     def evaluate(self, batch, stage=None):
         x, y = batch
@@ -63,7 +98,7 @@ class TestModule(pl.LightningModule):
         preds = torch.argmax(logits, dim=1)
         acc = accuracy(preds, y, "multiclass", num_classes=10)
         if stage:
-            self.log(f"{stage}:loss", loss,                 on_step=False, on_epoch=True, logger=True, prog_bar=True)
+            self.log(f"{stage}:loss", loss.mean(),                 on_step=False, on_epoch=True, logger=True, prog_bar=True)
             self.log(f"{stage}:acc", acc,                   on_step=False, on_epoch=True, logger=True, prog_bar=True)
         self.log("step", float(self.samples_processed),     on_step=False, on_epoch=True, prog_bar=True)
 
