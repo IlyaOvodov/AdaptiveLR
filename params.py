@@ -15,7 +15,7 @@ settings = AttrDict(
 # Parameters of algorithm. Are stored with result
 params = AttrDict(
     data_root = local_config.data_root,
-    model_name='NN_results/2023/{data.dataset}loop_test/03_man1_{model.type}_bs{data.params.batch_size}_{optimizer.type}_{optimizer.params.lr}',
+    model_name='NN_results/2023/{data.dataset}loop_test/06_stat_{model.type}_bs{data.params.batch_size}_{optimizer.type}_{optimizer.params.lr}',
     data = AttrDict(
         dataset = 'mnist',
         params = AttrDict(
@@ -27,6 +27,7 @@ params = AttrDict(
         params = AttrDict(),
         #load_from = 'NN_results/segmentation/linknet_128x128_cc60ab/models/clr.003.t7',
     ),
+    n_sigmas_thr = 1.645,  # 95% #  1.282 90% one side confidence
     loss=AttrDict(
         type='torch.nn.NLLLoss',
         params=AttrDict(

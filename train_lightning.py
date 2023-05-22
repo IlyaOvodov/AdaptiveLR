@@ -9,6 +9,7 @@ import cifar_data
 import mnist_data
 import model
 import params
+import weights_gradient_statistics
 
 class TestModule(pl.LightningModule):
     def __init__(self, context):
@@ -21,6 +22,7 @@ class TestModule(pl.LightningModule):
         if self.ctx.params.loss.params.get("reduction")=='none':
             self.automatic_optimization = False
         # self.automatic_optimization = False  # for testing
+        self.grad_stat = weights_gradient_statistics.GradientStatistics(self.ctx.optimizer.param_groups, self.ctx.params.n_sigmas_thr)
 
     def forward(self, x):
         y = self.net(x)
@@ -44,7 +46,7 @@ class TestModule(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        if self.automatic_optimization:
+        if self.automatic_optimization: # or self.trainer.current_epoch == 0:
             loss = self.training_step_auto(x, y, batch_idx)
         else:
             loss = self.training_step_manual(x, y, batch_idx)
@@ -69,17 +71,33 @@ class TestModule(pl.LightningModule):
 
         opt = self.optimizers()
         opt.zero_grad()
+        self.grad_stat.zero_grad()
         if len(loss.size()) == 0:
             loss=loss[None]
         for loss_i in loss:
             self.manual_backward(loss_i/len(loss), retain_graph=True)
+            self.grad_stat.step()
+            self.grad_stat.update_stat()
+
+        h = self.grad_stat.hist
+        print("\n", "updat", batch_idx, self.grad_stat.params_cnt, h.int().sum().item(), h.int().tolist())
+        h = self.grad_stat.get_trust_hist().int()
+        print(      "trust", batch_idx, h.sum().item(), h.tolist())
+
         opt.step()
+
+        self.grad_stat.reset_stat()
+
         return loss
 
     def on_train_epoch_end(self):
         if not self.automatic_optimization:
             scheduler = self.lr_schedulers()
             scheduler.step()
+        h = self.grad_stat.get_trust_hist()
+        if h is not None:
+            print("\n", "trust", h.tolist())
+            self.grad_stat.reset_trust_count()
         # self.log("step", float(self.trainer.fit_loop.epoch_loop._batches_that_stepped*self.ctx.params.data.params.batch_size), prog_bar=True)
 
     def evaluate(self, batch, stage=None):
