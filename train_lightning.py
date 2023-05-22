@@ -64,21 +64,17 @@ class TestModule(pl.LightningModule):
         return loss
 
     def training_step_manual(self, x, y, batch_idx):
-        total_loss = None
-        for i in range(x.shape[0]):
-            logits = self(x[i:i+1])
-            loss_i = self.ctx.loss(logits, y[i:i+1])/x.shape[0]
-            opt = self.optimizers()
-            opt.zero_grad()
-            if len(loss_i.size()) == 0:
-                loss_i=loss_i[None]
-            self.manual_backward(loss_i)
-            opt.step()
-            if total_loss is None:
-                total_loss = loss_i
-            else:
-                total_loss += loss_i
-        return total_loss
+        logits = self(x)
+        loss = self.ctx.loss(logits, y)
+
+        opt = self.optimizers()
+        opt.zero_grad()
+        if len(loss.size()) == 0:
+            loss=loss[None]
+        for loss_i in loss:
+            self.manual_backward(loss_i/len(loss), retain_graph=True)
+        opt.step()
+        return loss
 
     def on_train_epoch_end(self):
         if not self.automatic_optimization:
